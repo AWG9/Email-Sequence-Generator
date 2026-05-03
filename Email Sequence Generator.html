@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BizDev Email Sequence Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --border-med: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --muted: #6b6b67;
+    --hint: #9a9a95;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font: 'Inter', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --surface: #242422;
+      --border: rgba(255,255,255,0.1);
+      --border-med: rgba(255,255,255,0.18);
+      --text: #f0ede8;
+      --muted: #a0a09a;
+      --hint: #6b6b67;
+    }
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+  .page { max-width: 680px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  .header { margin-bottom: 2rem; }
+  .header h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .header p { font-size: 13px; color: var(--muted); }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .section-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .grid1 { margin-bottom: 10px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--muted); }
+  input, select {
+    width: 100%; padding: 7px 10px; border: 0.5px solid var(--border-med); border-radius: var(--radius-md);
+    background: var(--bg); color: var(--text); font-size: 14px; font-family: var(--font);
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--text); }
+  input::placeholder { color: var(--hint); }
+  .seq-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .tab {
+    padding: 6px 14px; border: 0.5px solid var(--border-med); border-radius: var(--radius-md);
+    font-size: 13px; cursor: pointer; background: transparent; color: var(--muted);
+    transition: all 0.15s; font-family: var(--font);
+  }
+  .tab:hover { background: var(--bg); color: var(--text); }
+  .tab.active { background: var(--surface); color: var(--text); border-color: var(--text); font-weight: 500; }
+  .timing-badge {
+    font-size: 11px; padding: 3px 8px; border-radius: var(--radius-md);
+    background: var(--bg); color: var(--muted); display: inline-block; margin-bottom: 8px; border: 0.5px solid var(--border);
+  }
+  .tab-desc { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .gen-btn {
+    width: 100%; padding: 9px; border: 0.5px solid var(--border-med); border-radius: var(--radius-md);
+    background: transparent; font-size: 14px; font-weight: 500; cursor: pointer; margin-bottom: 14px;
+    color: var(--text); transition: background 0.15s; font-family: var(--font);
+  }
+  .gen-btn:hover:not(:disabled) { background: var(--bg); }
+  .gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .email-box { border: 0.5px solid var(--border); border-radius: var(--radius-lg); background: var(--bg); padding: 1rem 1.25rem; min-height: 200px; }
+  .email-subject { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+  .email-subject span { color: var(--text); }
+  .email-body { font-size: 14px; line-height: 1.75; color: var(--text); white-space: pre-wrap; margin-top: 12px; border-top: 0.5px solid var(--border); padding-top: 12px; }
+  .placeholder { font-size: 13px; color: var(--hint); text-align: center; padding: 2.5rem 0; }
+  .copy-row { display: flex; justify-content: flex-end; margin-top: 10px; gap: 8px; }
+  .copy-btn {
+    font-size: 12px; padding: 5px 12px; border: 0.5px solid var(--border-med); border-radius: var(--radius-md);
+    background: transparent; cursor: pointer; color: var(--muted); font-family: var(--font);
+  }
+  .copy-btn:hover { background: var(--bg); color: var(--text); }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 16px 0; }
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--border-med); border-top-color: var(--text); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .api-note { font-size: 12px; color: var(--hint); text-align: center; margin-top: 1.5rem; }
+  .api-setup { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .api-setup p { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  @media (max-width: 500px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>Email Sequence Generator</h1>
+    <p>Re-engagement emails for previous business loan clients.</p>
+  </div>
+
+  <div class="api-setup">
+    <div class="section-label">Setup</div>
+    <p>Enter your Anthropic API key to enable AI-powered email generation. Get one at <a href="https://console.anthropic.com" target="_blank" style="color:var(--text)">console.anthropic.com</a>. Your key is stored only in your browser.</p>
+    <div class="field">
+      <label>Anthropic API key</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-..." oninput="saveKey()" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Prospect details</div>
+    <div class="grid2">
+      <div class="field"><label>First name</label><input type="text" id="fname" placeholder="Maria" /></div>
+      <div class="field"><label>Business type / industry</label><input type="text" id="industry" placeholder="Restaurant, Retail, Trucking..." /></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Previous loan amount ($)</label><input type="number" id="loanAmt" placeholder="25000" /></div>
+      <div class="field"><label>Last contact date</label><input type="date" id="lastContact" /></div>
+    </div>
+    <div class="grid1">
+      <div class="field"><label>Your name (sender)</label><input type="text" id="senderName" placeholder="Alex Johnson" /></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Email sequence</div>
+    <div class="seq-tabs">
+      <button class="tab active" onclick="setTab(0)">Email 1</button>
+      <button class="tab" onclick="setTab(1)">Email 2</button>
+      <button class="tab" onclick="setTab(2)">Email 3</button>
+    </div>
+    <div class="timing-badge" id="timing-badge">Send: Day 1</div>
+    <div class="tab-desc" id="tab-desc">Initial re-engagement — reference the past relationship and open the door.</div>
+
+    <button class="gen-btn" id="genBtn" onclick="generate()">Generate email</button>
+
+    <div class="email-box" id="emailBox">
+      <div class="placeholder">Fill in prospect details above and click generate.</div>
+    </div>
+    <div class="copy-row" id="copyRow" style="display:none">
+      <button class="copy-btn" onclick="copyEmail()">Copy email</button>
+    </div>
+  </div>
+
+  <p class="api-note">Emails are generated via Anthropic API. Your key never leaves your browser.</p>
+</div>
+
+<script>
+let currentTab = 0;
+let generatedSubject = '';
+let generatedBody = '';
+
+const tabInfo = [
+  { timing: 'Send: Day 1', desc: 'Initial re-engagement — reference the past relationship and open the door.' },
+  { timing: 'Send: Day 4–5', desc: 'Follow-up with value — share a benefit or offer and create light urgency.' },
+  { timing: 'Send: Day 8–9', desc: 'Final touch — low-pressure close, make it easy for them to say yes.' },
+];
+
+window.onload = () => {
+  const saved = localStorage.getItem('anthropic_key');
+  if (saved) document.getElementById('apiKey').value = saved;
+};
+
+function saveKey() {
+  const k = document.getElementById('apiKey').value.trim();
+  if (k) localStorage.setItem('anthropic_key', k);
+}
+
+function setTab(i) {
+  currentTab = i;
+  document.querySelectorAll('.tab').forEach((t, idx) => t.classList.toggle('active', idx === i));
+  document.getElementById('timing-badge').textContent = tabInfo[i].timing;
+  document.getElementById('tab-desc').textContent = tabInfo[i].desc;
+  document.getElementById('emailBox').innerHTML = '<div class="placeholder">Click generate for Email ' + (i+1) + '.</div>';
+  document.getElementById('copyRow').style.display = 'none';
+  generatedSubject = ''; generatedBody = '';
+}
+
+function daysSince(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr), now = new Date();
+  return Math.floor((now - d) / (1000 * 60 * 60 * 24));
+}
+
+async function generate() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { alert('Please enter your Anthropic API key above.'); return; }
+
+  const fname = document.getElementById('fname').value.trim() || 'there';
+  const industry = document.getElementById('industry').value.trim() || 'small business';
+  const loanAmt = document.getElementById('loanAmt').value;
+  const lastContact = document.getElementById('lastContact').value;
+  const senderName = document.getElementById('senderName').value.trim() || 'Alex';
+  const days = daysSince(lastContact);
+  const timeAgo = days ? (days > 365 ? `about ${Math.floor(days/365)} year(s) ago` : days > 30 ? `about ${Math.floor(days/30)} month(s) ago` : `${days} days ago`) : 'some time ago';
+  const loanRef = loanAmt ? `$${Number(loanAmt).toLocaleString()}` : 'a loan';
+
+  const instructions = [
+    `This is Email 1 of 3. Warm re-engagement. Reference their past loan of ${loanRef} taken ${timeAgo}. Ask one soft open-ended question. No hard sell. Under 120 words. CTA: "Would you be open to a quick chat?"`,
+    `This is Email 2 of 3. They haven't replied. Add value — mention faster funding, flexible terms, or growth support for their ${industry} business. Light urgency. Under 100 words. CTA: "Happy to get you a quick quote — no obligation."`,
+    `This is Email 3 of 3. Final touch. Short, low-pressure, genuine. Acknowledge they're busy. Leave door open. Under 80 words. CTA: "Just reply yes and I'll send details." Last email — make it easy.`,
+  ];
+
+  const prompt = `You are a business development intern at a loan company re-engaging previous client ${fname}, owner of a ${industry} business who took out ${loanRef} ${timeAgo}. Your name is ${senderName}.
+
+${instructions[currentTab]}
+
+Respond ONLY in JSON (no markdown, no backticks):
+{"subject": "...", "body": "..."}
+
+Use \\n for line breaks. Write as a real person. Do not use placeholder brackets.`;
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Writing...';
+  document.getElementById('emailBox').innerHTML = '<div class="placeholder"><span class="spinner"></span> Generating...</div>';
+  document.getElementById('copyRow').style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.content?.find(b => b.type === 'text')?.text || '{}';
+    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    generatedSubject = parsed.subject || '';
+    generatedBody = (parsed.body || '').replace(/\\n/g, '\n');
+    document.getElementById('emailBox').innerHTML =
+      '<div class="email-subject">Subject: <span>' + esc(generatedSubject) + '</span></div>' +
+      '<div class="email-body">' + esc(generatedBody) + '</div>';
+    document.getElementById('copyRow').style.display = 'flex';
+  } catch(e) {
+    document.getElementById('emailBox').innerHTML = '<div class="placeholder">Error: ' + esc(e.message) + '. Check your API key.</div>';
+  }
+  btn.disabled = false;
+  btn.innerHTML = 'Regenerate email';
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function copyEmail() {
+  navigator.clipboard.writeText('Subject: ' + generatedSubject + '\n\n' + generatedBody).then(() => {
+    const b = document.querySelector('.copy-btn');
+    b.textContent = 'Copied!';
+    setTimeout(() => b.textContent = 'Copy email', 1500);
+  });
+}
+</script>
+</body>
+</html>
